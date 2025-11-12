@@ -1,0 +1,39 @@
+.services {
+  padding: 100px 50px;
+  text-align: center;
+  background-color: var(--secondary-bg);
+  color: var(--primary-text);
+  position: relative;
+  z-index: 1;
+}
+
+.services h2 {
+  font-size: 3rem;
+  margin-bottom: 50px;
+}
+
+.service-cards {
+  display: flex;
+  justify-content: space-around;
+  gap: 20px;
+}
+
+.service-card {
+  background-color: var(--primary-bg);
+  padding: 40px 20px;
+  border-radius: 10px;
+  border: 1px solid var(--accent-color-1);
+  flex-basis: 30%;
+  transition: all 0.3s ease;
+  box-shadow: 0 0 20px rgba(106, 17, 203, 0.2);
+}
+
+.service-card:hover {
+  transform: translateY(-10px);
+}
+
+.service-card h3 {
+  font-size: 1.8rem;
+  margin-bottom: 20px;
+  color: var(--accent-color-2);
+}
