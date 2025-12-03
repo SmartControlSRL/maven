@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maven Business Consulting</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .brand-font { font-family: 'Space Grotesk', sans-serif; }
+        
+        /* Tech Grid Background */
+        .tech-bg {
+            background-color: #030712;
+            background-image: 
+                linear-gradient(to right, rgba(99, 102, 241, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(99, 102, 241, 0.05) 1px, transparent 1px);
+            background-size: 60px 60px;
+        }
+
+        /* Particle Canvas */
+        #particleCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1; 
+        }
+
+        /* Content Z-Index Management */
+        nav, header, main, footer {
+            position: relative;
+            z-index: 10;
+        }
+        
+        /* Glowing Gradient Text */
+        .text-gradient {
+            background: linear-gradient(135deg, #6366f1 0%, #d8b4fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        /* Card Hover Glow */
+        .tech-card {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .tech-card:hover {
+            border-color: rgba(99, 102, 241, 0.6);
+            box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
+            transform: translateY(-4px) scale(1.01);
+        }
+
+        /* Button Gradient */
+        .btn-tech {
+            background: linear-gradient(90deg, #4f46e5 0%, #9333ea 100%);
+            background-size: 200% auto;
+            transition: 0.5s;
+        }
+        .btn-tech:hover {
+            background-position: right center;
+            box-shadow: 0 0 25px rgba(147, 51, 234, 0.5);
+        }
+    </style>
+</head>
+<body class="tech-bg text-slate-300 antialiased selection:bg-indigo-500/30 selection:text-indigo-200 min-h-screen flex flex-col overflow-x-hidden">
+
+    <!-- Particle Canvas Layer -->
+    <canvas id="particleCanvas"></canvas>
+
+    <!-- Ambient Glow effects -->
+    <div class="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-indigo-600/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
+    <div class="fixed bottom-[-10%] right-[-10%] w-[50%] h-[50%] bg-purple-600/10 rounded-full blur-[150px] pointer-events-none z-0"></div>
+
+    <!-- Navigation -->
+    <nav class="fixed top-0 w-full border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
+        <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <!-- Quad-Data Grid Logo -->
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect x="6" y="6" width="13" height="13" rx="2" fill="url(#paint_logo_sq1)"/>
+                    <rect x="21" y="6" width="13" height="13" rx="2" stroke="#64748b" stroke-width="2"/>
+                    <rect x="6" y="21" width="13" height="13" rx="2" stroke="#64748b" stroke-width="2"/>
+                    <rect x="21" y="21" width="13" height="13" rx="2" fill="url(#paint_logo_sq2)"/>
+                    <defs>
+                        <linearGradient id="paint_logo_sq1" x1="6" y1="6" x2="19" y2="19" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#6366F1"/>
+                            <stop offset="1" stop-color="#818CF8"/>
+                        </linearGradient>
+                        <linearGradient id="paint_logo_sq2" x1="21" y1="21" x2="34" y2="34" gradientUnits="userSpaceOnUse">
+                            <stop stop-color="#A855F7"/>
+                            <stop offset="1" stop-color="#C084FC"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="text-white font-bold text-xl brand-font tracking-tight">MAVEN</span>
+            </div>
+            <a href="#contact" class="hidden sm:block text-xs font-bold uppercase tracking-wider text-indigo-400 border border-indigo-500/30 hover:bg-indigo-950/50 px-6 py-2 rounded transition-all">
+                Start Project //
+            </a>
+        </div>
+    </nav>
+
+    <!-- Header / Hero Section -->
+    <header class="relative pt-44 pb-24 px-6 lg:pt-60 lg:pb-32">
+        <div class="max-w-5xl mx-auto">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded border border-indigo-500/30 bg-indigo-950/30 text-xs font-mono text-indigo-300 mb-8 backdrop-blur-sm">
+                <span class="relative flex h-2 w-2">
+                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                  <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                </span>
+                SYSTEM ONLINE: 2025
+            </div>
+            
+            <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold text-white tracking-tighter leading-[1.1] mb-8 drop-shadow-2xl">
+                FUTURE <span class="text-gradient">PROOF</span><br>
+                YOUR BUSINESS.
+            </h1>
+            
+            <p class="text-lg md:text-xl text-slate-400 max-w-2xl leading-relaxed border-l-4 border-indigo-500 pl-6 mb-12">
+                Building and investing in next‑generation software, IT&C, and AI‑enabled companies. We don't just consult; we engineer growth.
+            </p>
+        </div>
+    </header>
+
+    <!-- Content Grid -->
+    <main class="max-w-7xl mx-auto px-6 py-12 flex-grow">
+        
+        <div class="grid md:grid-cols-2 gap-6 lg:gap-8 mb-32">
+            <!-- About Section Card -->
+            <div id="about" class="tech-card p-10 rounded-2xl group relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 p-10 opacity-10 group-hover:opacity-20 transition-all duration-500">
+                    <i data-lucide="cpu" class="w-48 h-48 text-indigo-400 transform rotate-12 transition-transform duration-700 ease-out group-hover:rotate-45 group-hover:scale-110"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-indigo-400 font-mono">01_</span> About Us
+                </h2>
+                <div class="prose prose-invert prose-lg text-slate-400">
+                    <p>We partner with founders creating technology that reshapes industries. Our focus spans software, IT&C solutions, and AI‑driven platforms.</p>
+                </div>
+            </div>
+
+            <!-- What We Do Section Card -->
+            <div class="tech-card p-10 rounded-2xl group relative overflow-hidden">
+                <div class="absolute -right-6 -top-6 p-10 opacity-10 group-hover:opacity-20 transition-all duration-500">
+                    <i data-lucide="activity" class="w-48 h-48 text-purple-400 transform -rotate-12 transition-transform duration-700 ease-out group-hover:-rotate-45 group-hover:scale-110"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-white mb-4 flex items-center gap-3">
+                    <span class="text-purple-400 font-mono">02_</span> What We Do
+                </h2>
+                <div class="prose prose-invert prose-lg text-slate-400">
+                    <p>We build, invest in, and accelerate early‑stage ventures by providing capital, technical expertise, and strategic guidance.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tech Contact Form -->
+        <div id="contact" class="max-w-3xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold text-white mb-4 tracking-tight">INITIALIZE CONTACT</h2>
+                <div class="h-0.5 w-24 bg-gradient-to-r from-indigo-500 to-purple-500 mx-auto"></div>
+            </div>
+
+            <div class="tech-card p-8 md:p-12 rounded-xl shadow-2xl relative">
+                <!-- Decorative scan line top -->
+                <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-indigo-500 to-transparent opacity-50"></div>
+
+                <form id="contactForm" class="space-y-6">
+                    <div class="grid md:grid-cols-2 gap-6">
+                        <div class="space-y-2">
+                            <label for="name" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Full Name</label>
+                            <!-- ADDED NAME ATTRIBUTE -->
+                            <input type="text" id="name" name="name" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="ENTER NAME">
+                        </div>
+                        <div class="space-y-2">
+                            <label for="email" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Email Address</label>
+                            <!-- ADDED NAME ATTRIBUTE -->
+                            <input type="email" id="email" name="email" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="ENTER EMAIL">
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-2">
+                        <label for="subject" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Subject</label>
+                        <!-- ADDED NAME ATTRIBUTE -->
+                        <select id="subject" name="subject" class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
+                            <option>Pitch Deck Submission</option>
+                            <option>General Inquiry</option>
+                            <option>Partnership Opportunity</option>
+                        </select>
+                    </div>
+
+                    <div class="space-y-2">
+                        <label for="message" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Message</label>
+                        <!-- ADDED NAME ATTRIBUTE -->
+                        <textarea id="message" name="message" rows="4" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="INPUT MESSAGE DATA..."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full btn-tech text-white font-bold py-5 rounded-lg tracking-widest uppercase text-sm mt-4 shadow-lg shadow-indigo-900/50">
+                        Transmit Data
+                    </button>
+                </form>
+                
+                <div id="successMessage" class="hidden mt-6 p-4 bg-indigo-900/20 border border-indigo-500/30 text-indigo-300 text-center text-sm font-mono rounded">
+                    > DATA TRANSMISSION SUCCESSFUL.
+                </div>
+                 <div id="errorMessage" class="hidden mt-6 p-4 bg-red-900/20 border border-red-500/30 text-red-300 text-center text-sm font-mono rounded">
+                    > ERROR: TRANSMISSION FAILED. CHECK CONSOLE.
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="border-t border-white/5 py-12 text-center mt-20 bg-black/40 backdrop-blur-md z-10 relative">
+        <p class="text-slate-500 text-sm font-mono">
+            // © 2025 Maven Business Consulting. All Systems Operational.
+        </p>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        lucide.createIcons();
+
+        // 1. MOUSE TRACKING
+        let mouseX = -1000;
+        let mouseY = -1000;
+        document.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX;
+            mouseY = e.clientY;
+        });
+
+        // 2. SQUARE PARTICLE SYSTEM (Data Matrix)
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
+        let squares = [];
+        let animationFrameId;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initSquares();
+        }
+        window.addEventListener('resize', resizeCanvas);
+
+        class Square {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                // Base properties
+                this.size = Math.random() * 10 + 4; // Larger squares
+                this.baseSize = this.size;
+                this.angle = Math.random() * Math.PI * 2;
+                
+                // Drift velocity (slow)
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = (Math.random() - 0.5) * 0.5;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+
+                // Color info
+                this.baseColor = 'rgba(99, 102, 241, 0.15)'; // Faint indigo
+                this.activeColor = 'rgba(168, 85, 247, 0.8)'; // Bright purple
+            }
+
+            update() {
+                // 1. Base Movement (Drift)
+                this.x += this.vx;
+                this.y += this.vy;
+                this.angle += this.rotationSpeed;
+
+                // Screen Wrap
+                if (this.x < -50) this.x = canvas.width + 50;
+                if (this.x > canvas.width + 50) this.x = -50;
+                if (this.y < -50) this.y = canvas.height + 50;
+                if (this.y > canvas.height + 50) this.y = -50;
+
+                // 2. Mouse Interaction
+                const dx = mouseX - this.x;
+                const dy = mouseY - this.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const activationDist = 150;
+
+                if (dist < activationDist) {
+                    // Activate!
+                    const pct = 1 - (dist / activationDist); // 0 to 1 based on closeness
+                    
+                    // Spin faster based on proximity
+                    this.angle += 0.1 * pct; 
+                    
+                    // Grow slightly
+                    this.size = this.baseSize + (10 * pct);
+
+                    // Draw connection line
+                    ctx.beginPath();
+                    ctx.moveTo(this.x, this.y);
+                    ctx.lineTo(mouseX, mouseY);
+                    ctx.strokeStyle = `rgba(99, 102, 241, ${0.4 * pct})`;
+                    ctx.lineWidth = 1;
+                    ctx.stroke();
+
+                    // Set fill to active color
+                    ctx.fillStyle = this.activeColor;
+                    ctx.shadowBlur = 15;
+                    ctx.shadowColor = this.activeColor;
+                } else {
+                    // Reset to base state
+                    if (this.size > this.baseSize) this.size -= 0.5; // Smooth shrink
+                    ctx.fillStyle = this.baseColor;
+                    ctx.shadowBlur = 0;
+                }
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                // Draw centered square
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                
+                // Optional: Draw outline for "tech" feel
+                ctx.strokeStyle = ctx.fillStyle;
+                ctx.lineWidth = 1;
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                
+                ctx.restore();
+            }
+        }
+
+        function initSquares() {
+            squares = [];
+            // Calculate count based on screen area
+            const count = (canvas.width * canvas.height) / 8000;
+            for (let i = 0; i < count; i++) {
+                squares.push(new Square());
+            }
+        }
+
+        function animate() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            squares.forEach(sq => {
+                sq.update();
+                sq.draw();
+            });
+            animationFrameId = requestAnimationFrame(animate);
+        }
+
+        // Start
+        resizeCanvas();
+        animate();
+
+        // 3. FORM HANDLING (UPDATED FOR GOOGLE SHEETS)
+        const form = document.getElementById('contactForm');
+        const successMsg = document.getElementById('successMessage');
+        const errorMsg = document.getElementById('errorMessage');
+        const btn = form.querySelector('button');
+
+        // *** IMPORTANT: REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL ***
+        const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuscHSvhqjG6yEtuglVQGyTH3LIR4C0G8X9KKfZiMycQvWTRG-180o-jgsdCQ_adqr/exec';
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Visual Feedback
+            const originalText = btn.innerText;
+            btn.innerText = 'TRANSMITTING...';
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+            successMsg.classList.add('hidden');
+            errorMsg.classList.add('hidden');
+
+            // Send Data
+            fetch(SCRIPT_URL, {
+                method: 'POST',
+                body: new FormData(form),
+                // mode: 'no-cors' // Use this if you get CORS errors, but you won't see response json
+            })
+            .then(response => {
+                // If using no-cors, this will always fire even on error
+                // If using standard cors, check response.ok
+                // For simple Google Sheet forms, we often just assume success if fetch works
+                form.reset();
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                successMsg.classList.remove('hidden');
+                
+                setTimeout(() => {
+                    successMsg.classList.add('hidden');
+                }, 5000);
+            })
+            .catch(error => {
+                console.error('Error!', error.message);
+                btn.innerText = originalText;
+                btn.disabled = false;
+                btn.classList.remove('opacity-75');
+                errorMsg.classList.remove('hidden');
+            });
+        });
+    </script>
+</body>
+</html>
