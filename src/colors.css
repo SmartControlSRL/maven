@@ -1,9 +1,0 @@
-:root {
-  --primary-bg: #0a0f1e;
-  --secondary-bg: #1a2033;
-  --primary-text: #ffffff;
-  --secondary-text: #a8b2d1;
-  --accent-color-1: #6A11CB;
-  --accent-color-2: #2575FC;
-  --accent-color-gradient: linear-gradient(90deg, var(--accent-color-1), var(--accent-color-2));
-}
