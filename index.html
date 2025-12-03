@@ -426,6 +426,64 @@
             }
         }
 
+        // ADDED: Physics Collision Resolution
+        function resolveCollisions() {
+            for (let i = 0; i < squares.length; i++) {
+                for (let j = i + 1; j < squares.length; j++) {
+                    const s1 = squares[i];
+                    const s2 = squares[j];
+
+                    const dx = s2.x - s1.x;
+                    const dy = s2.y - s1.y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+
+                    // Approximation: treat squares as circles for collision radius
+                    // Using 0.55 factor (slightly larger than half-width) to account for corners
+                    const minDist = (s1.size * 0.55) + (s2.size * 0.55);
+
+                    if (dist < minDist && dist > 0) {
+                        // 1. Calculate Mass (Area)
+                        const m1 = s1.size * s1.size;
+                        const m2 = s2.size * s2.size;
+                        const totalMass = m1 + m2;
+
+                        // 2. Resolve Overlap (Push them apart so they don't stick)
+                        const overlap = minDist - dist;
+                        const nx = dx / dist; // Normal X
+                        const ny = dy / dist; // Normal Y
+
+                        // Move apart proportional to inverse mass (lighter moves more)
+                        const move1 = overlap * (m2 / totalMass);
+                        const move2 = overlap * (m1 / totalMass);
+
+                        s1.x -= nx * move1;
+                        s1.y -= ny * move1;
+                        s2.x += nx * move2;
+                        s2.y += ny * move2;
+
+                        // 3. Resolve Velocity (1D Elastic Collision along normal)
+                        // Project velocities onto the normal vector
+                        const v1n = s1.vx * nx + s1.vy * ny;
+                        const v2n = s2.vx * nx + s2.vy * ny;
+
+                        // Impact formula
+                        const v1nAfter = (v1n * (m1 - m2) + 2 * m2 * v2n) / totalMass;
+                        const v2nAfter = (v2n * (m2 - m1) + 2 * m1 * v1n) / totalMass;
+
+                        // Apply changes back to velocity vectors
+                        s1.vx += (v1nAfter - v1n) * nx;
+                        s1.vy += (v1nAfter - v1n) * ny;
+                        s2.vx += (v2nAfter - v2n) * nx;
+                        s2.vy += (v2nAfter - v2n) * ny;
+
+                        // Add a little friction/energy loss
+                        s1.vx *= 0.98; s1.vy *= 0.98;
+                        s2.vx *= 0.98; s2.vy *= 0.98;
+                    }
+                }
+            }
+        }
+
         // --- INTERACTION ---
         canvas.addEventListener('mousedown', (e) => {
             lastInteraction = Date.now(); // Reset idle timer on click
@@ -501,6 +559,9 @@
                 // This prevents a pop from happening immediately 15s after page load if the user is active
                 lastAutoPop = now;
             }
+
+            // Apply collision physics before movement
+            resolveCollisions();
 
             let cursorPointer = false;
 
