@@ -27,14 +27,23 @@
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
+            /* Changed from none to auto so we can click them */
+            pointer-events: auto; 
             z-index: 1; 
         }
 
-        /* Content Z-Index Management */
+        /* Content Z-Index Management - moved higher so text is still selectable */
         nav, header, main, footer {
             position: relative;
-            z-index: 10;
+            z-index: 20;
+            pointer-events: none; /* Let clicks pass through containers... */
+        }
+        
+        /* ...but re-enable pointer events on actual interactive elements */
+        nav a, nav button, 
+        main a, main button, main input, main textarea, main select, 
+        .tech-card {
+            pointer-events: auto;
         }
         
         /* Glowing Gradient Text */
@@ -111,12 +120,18 @@
     <!-- Header / Hero Section -->
     <header class="relative pt-44 pb-24 px-6 lg:pt-60 lg:pb-32">
         <div class="max-w-5xl mx-auto">
-            <div class="inline-flex items-center gap-2 px-3 py-1 rounded border border-indigo-500/30 bg-indigo-950/30 text-xs font-mono text-indigo-300 mb-8 backdrop-blur-sm">
-                <span class="relative flex h-2 w-2">
-                  <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
-                  <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
-                </span>
-                SYSTEM ONLINE: 2025
+            <div class="flex flex-col gap-2 items-start mb-8">
+                <div class="inline-flex items-center gap-2 px-3 py-1 rounded border border-indigo-500/30 bg-indigo-950/30 text-xs font-mono text-indigo-300 backdrop-blur-sm">
+                    <span class="relative flex h-2 w-2">
+                    <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                    <span class="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
+                    </span>
+                    SYSTEM ONLINE: 2025
+                </div>
+                <!-- ADDED: Instruction Text -->
+                <div class="text-[10px] font-mono text-indigo-400/60 tracking-widest uppercase pl-1">
+                    <span class="animate-pulse">></span> INTERACTIVE NODES DETECTED. CLICK TO DISPERSE.
+                </div>
             </div>
             
             <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold text-white tracking-tighter leading-[1.1] mb-8 drop-shadow-2xl">
@@ -176,19 +191,16 @@
                     <div class="grid md:grid-cols-2 gap-6">
                         <div class="space-y-2">
                             <label for="name" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Full Name</label>
-                            <!-- ADDED NAME ATTRIBUTE -->
                             <input type="text" id="name" name="name" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="ENTER NAME">
                         </div>
                         <div class="space-y-2">
                             <label for="email" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Email Address</label>
-                            <!-- ADDED NAME ATTRIBUTE -->
                             <input type="email" id="email" name="email" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="ENTER EMAIL">
                         </div>
                     </div>
                     
                     <div class="space-y-2">
                         <label for="subject" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Subject</label>
-                        <!-- ADDED NAME ATTRIBUTE -->
                         <select id="subject" name="subject" class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all">
                             <option>Pitch Deck Submission</option>
                             <option>General Inquiry</option>
@@ -198,7 +210,6 @@
 
                     <div class="space-y-2">
                         <label for="message" class="text-xs font-mono text-indigo-300 uppercase tracking-widest">Message</label>
-                        <!-- ADDED NAME ATTRIBUTE -->
                         <textarea id="message" name="message" rows="4" required class="w-full bg-black/40 border border-slate-700 rounded-lg px-4 py-4 text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all placeholder-slate-700" placeholder="INPUT MESSAGE DATA..."></textarea>
                     </div>
 
@@ -229,15 +240,21 @@
     <script>
         lucide.createIcons();
 
-        // 1. MOUSE TRACKING
+        // 1. MOUSE TRACKING & IDLE DETECTION
         let mouseX = -1000;
         let mouseY = -1000;
+        let lastInteraction = Date.now();
+        // ADDED: Timer variables for precise control
+        let lastAutoPop = Date.now();
+        let nextPopDelay = 15000; // Start with 15s
+
         document.addEventListener('mousemove', (e) => {
             mouseX = e.clientX;
             mouseY = e.clientY;
+            lastInteraction = Date.now();
         });
 
-        // 2. SQUARE PARTICLE SYSTEM (Data Matrix)
+        // 2. INTERACTIVE PHYSICS SYSTEM
         const canvas = document.getElementById('particleCanvas');
         const ctx = canvas.getContext('2d');
         let squares = [];
@@ -246,74 +263,80 @@
         function resizeCanvas() {
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
-            initSquares();
+            // Only re-init if empty (don't kill active bouncing squares on resize)
+            if(squares.length === 0) initSquares();
         }
         window.addEventListener('resize', resizeCanvas);
 
+        // --- THE UNIFIED SQUARE CLASS ---
         class Square {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                // Base properties
-                this.size = Math.random() * 10 + 4; // Larger squares
+            constructor(x, y, size, vx, vy, isChild = false, colorVal = null) {
+                this.isChild = isChild;
+                this.isHovered = false; 
+                
+                if (this.isChild) {
+                    // Child properties (passed in)
+                    this.x = x;
+                    this.y = y;
+                    this.size = size;
+                    this.vx = vx;
+                    this.vy = vy;
+                    this.colorVal = colorVal;
+                    // UPDATED: Match parent style (translucent) instead of solid
+                    this.alpha = 0.12; 
+                } else {
+                    // Parent/Background properties (random init)
+                    this.spawn();
+                }
+
                 this.baseSize = this.size;
                 this.angle = Math.random() * Math.PI * 2;
+                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
+            }
+
+            spawn() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
                 
-                // Drift velocity (slow)
+                // HUGE RANDOMNESS for background
+                this.size = Math.random() * 100 + 30; 
+                
+                // Slow drift for background
                 this.vx = (Math.random() - 0.5) * 0.5;
                 this.vy = (Math.random() - 0.5) * 0.5;
-                this.rotationSpeed = (Math.random() - 0.5) * 0.02;
 
-                // Color info
-                this.baseColor = 'rgba(99, 102, 241, 0.15)'; // Faint indigo
-                this.activeColor = 'rgba(168, 85, 247, 0.8)'; // Bright purple
+                // Faint colors
+                this.alpha = 0.08; 
+                this.colorVal = Math.random() > 0.5 ? '99, 102, 241' : '168, 85, 247'; 
             }
 
             update() {
-                // 1. Base Movement (Drift)
                 this.x += this.vx;
                 this.y += this.vy;
                 this.angle += this.rotationSpeed;
 
-                // Screen Wrap
-                if (this.x < -50) this.x = canvas.width + 50;
-                if (this.x > canvas.width + 50) this.x = -50;
-                if (this.y < -50) this.y = canvas.height + 50;
-                if (this.y > canvas.height + 50) this.y = -50;
+                // Hit detection for hover state
+                const dist = Math.sqrt(Math.pow(mouseX - this.x, 2) + Math.pow(mouseY - this.y, 2));
+                this.isHovered = dist < (this.size * 0.6);
 
-                // 2. Mouse Interaction
-                const dx = mouseX - this.x;
-                const dy = mouseY - this.y;
-                const dist = Math.sqrt(dx*dx + dy*dy);
-                const activationDist = 150;
+                if (this.isChild) {
+                    // CHILDREN BOUNCE
+                    // Simple friction to slow them down eventually
+                    // this.vx *= 0.995; 
+                    // this.vy *= 0.995;
 
-                if (dist < activationDist) {
-                    // Activate!
-                    const pct = 1 - (dist / activationDist); // 0 to 1 based on closeness
-                    
-                    // Spin faster based on proximity
-                    this.angle += 0.1 * pct; 
-                    
-                    // Grow slightly
-                    this.size = this.baseSize + (10 * pct);
-
-                    // Draw connection line
-                    ctx.beginPath();
-                    ctx.moveTo(this.x, this.y);
-                    ctx.lineTo(mouseX, mouseY);
-                    ctx.strokeStyle = `rgba(99, 102, 241, ${0.4 * pct})`;
-                    ctx.lineWidth = 1;
-                    ctx.stroke();
-
-                    // Set fill to active color
-                    ctx.fillStyle = this.activeColor;
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = this.activeColor;
+                    // Bounce off walls
+                    if (this.x - this.size/2 < 0) { this.x = this.size/2; this.vx *= -0.8; }
+                    if (this.x + this.size/2 > canvas.width) { this.x = canvas.width - this.size/2; this.vx *= -0.8; }
+                    if (this.y - this.size/2 < 0) { this.y = this.size/2; this.vy *= -0.8; }
+                    if (this.y + this.size/2 > canvas.height) { this.y = canvas.height - this.size/2; this.vy *= -0.8; }
                 } else {
-                    // Reset to base state
-                    if (this.size > this.baseSize) this.size -= 0.5; // Smooth shrink
-                    ctx.fillStyle = this.baseColor;
-                    ctx.shadowBlur = 0;
+                    // BACKGROUND WRAPS
+                    const buffer = 150;
+                    if (this.x < -buffer) this.x = canvas.width + buffer;
+                    if (this.x > canvas.width + buffer) this.x = -buffer;
+                    if (this.y < -buffer) this.y = canvas.height + buffer;
+                    if (this.y > canvas.height + buffer) this.y = -buffer;
                 }
             }
 
@@ -321,33 +344,175 @@
                 ctx.save();
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
-                // Draw centered square
-                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
                 
-                // Optional: Draw outline for "tech" feel
-                ctx.strokeStyle = ctx.fillStyle;
-                ctx.lineWidth = 1;
+                // Dynamic styling based on hover
+                if (this.isHovered) {
+                    ctx.fillStyle = `rgba(${this.colorVal}, 0.4)`; // Brighter when hovered
+                    ctx.shadowBlur = 20;
+                    ctx.shadowColor = `rgb(${this.colorVal})`;
+                    ctx.strokeStyle = `rgba(${this.colorVal}, 1)`;
+                    ctx.lineWidth = 2; // Hover effect keeps thicker line
+                } else {
+                    ctx.fillStyle = `rgba(${this.colorVal}, ${this.alpha})`;
+                    ctx.shadowBlur = 0;
+                    
+                    // UPDATED: Unified styling for both parent and child
+                    const strokeAlpha = this.alpha * 2;
+                    ctx.strokeStyle = `rgba(${this.colorVal}, ${strokeAlpha})`;
+                    ctx.lineWidth = 1; 
+                }
+                
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
                 ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
                 
                 ctx.restore();
+            }
+
+            isHit(mx, my) {
+                const dist = Math.sqrt(Math.pow(mx - this.x, 2) + Math.pow(my - this.y, 2));
+                return dist < (this.size * 0.6); // Slightly smaller hit area for better feel
+            }
+
+            split() {
+                // Conservation of Mass (Area): 4 children of half size = same total area
+                const newSize = this.size / 2;
+                
+                // If too small, don't spawn children (atomized)
+                if (newSize < 10) return [];
+
+                const children = [];
+                const offset = newSize / 2; // Move centers out
+
+                // Create 4 quadrants
+                // We add "Impulse" to the current velocity
+                const impulse = 4; 
+
+                // Top-Left
+                children.push(new Square(
+                    this.x - offset, this.y - offset, newSize, 
+                    this.vx - Math.random()*impulse, this.vy - Math.random()*impulse, 
+                    true, this.colorVal
+                ));
+                // Top-Right
+                children.push(new Square(
+                    this.x + offset, this.y - offset, newSize, 
+                    this.vx + Math.random()*impulse, this.vy - Math.random()*impulse, 
+                    true, this.colorVal
+                ));
+                // Bottom-Left
+                children.push(new Square(
+                    this.x - offset, this.y + offset, newSize, 
+                    this.vx - Math.random()*impulse, this.vy + Math.random()*impulse, 
+                    true, this.colorVal
+                ));
+                // Bottom-Right
+                children.push(new Square(
+                    this.x + offset, this.y + offset, newSize, 
+                    this.vx + Math.random()*impulse, this.vy + Math.random()*impulse, 
+                    true, this.colorVal
+                ));
+
+                return children;
             }
         }
 
         function initSquares() {
             squares = [];
-            // Calculate count based on screen area
-            const count = (canvas.width * canvas.height) / 8000;
+            // DRASTICALLY REDUCED DENSITY: Changed divisor from 25000 to 60000
+            // This will result in very few initial squares (sparse background)
+            const count = (canvas.width * canvas.height) / 60000; 
             for (let i = 0; i < count; i++) {
                 squares.push(new Square());
             }
         }
 
+        // --- INTERACTION ---
+        canvas.addEventListener('mousedown', (e) => {
+            lastInteraction = Date.now(); // Reset idle timer on click
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+
+            // Iterate backwards so we can remove items easily
+            // and so we hit top items first
+            for (let i = squares.length - 1; i >= 0; i--) {
+                const sq = squares[i];
+                if (sq.isHit(clickX, clickY)) {
+                    // Split it
+                    const newChildren = sq.split();
+                    
+                    // Remove parent
+                    squares.splice(i, 1);
+                    
+                    // Add children
+                    squares.push(...newChildren);
+
+                    // If it was a background square (not a child), 
+                    // maybe spawn a new distant background one to keep the "ecosystem" alive?
+                    // Optional: keeps the screen from emptying out
+                    if (!sq.isChild) {
+                         setTimeout(() => squares.push(new Square()), 1000);
+                    }
+                    
+                    // Break after hitting one to avoid multi-kill on overlap (optional)
+                    break;
+                }
+            }
+        });
+
         function animate() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const now = Date.now();
+
+            // --- IDLE AUTO-EXPLODE LOGIC ---
+            // 1. Check if user is idle (no movement for 5s)
+            if (now - lastInteraction > 5000) {
+                
+                // 2. Check if enough time has passed since the last auto-pop
+                if (now - lastAutoPop > nextPopDelay) {
+                    
+                    // Find valid targets (visible parent squares)
+                    const targets = [];
+                    squares.forEach((sq, index) => {
+                        // Only explode parents that are safely on screen
+                        if (!sq.isChild && sq.x > 50 && sq.x < canvas.width - 50 && sq.y > 50 && sq.y < canvas.height - 50) {
+                            targets.push(index);
+                        }
+                    });
+
+                    if (targets.length > 0) {
+                        const targetIndex = targets[Math.floor(Math.random() * targets.length)];
+                        const sq = squares[targetIndex];
+                        const newChildren = sq.split();
+                        squares.splice(targetIndex, 1);
+                        squares.push(...newChildren);
+                        
+                        // Replenish
+                        setTimeout(() => squares.push(new Square()), 1500);
+                        
+                        // Reset timer for next pop (randomly between 15s and 20s)
+                        lastAutoPop = now;
+                        nextPopDelay = 15000 + Math.random() * 5000;
+                    }
+                }
+            } else {
+                // If user is active, keep pushing the auto-pop timer forward
+                // This prevents a pop from happening immediately 15s after page load if the user is active
+                lastAutoPop = now;
+            }
+
+            let cursorPointer = false;
+
             squares.forEach(sq => {
                 sq.update();
                 sq.draw();
+                if (sq.isHovered) cursorPointer = true;
             });
+
+            // Update cursor based on hover state
+            canvas.style.cursor = cursorPointer ? 'pointer' : 'default';
+
             animationFrameId = requestAnimationFrame(animate);
         }
 
@@ -355,19 +520,15 @@
         resizeCanvas();
         animate();
 
-        // 3. FORM HANDLING (UPDATED FOR GOOGLE SHEETS)
+        // 3. FORM HANDLING
         const form = document.getElementById('contactForm');
         const successMsg = document.getElementById('successMessage');
         const errorMsg = document.getElementById('errorMessage');
         const btn = form.querySelector('button');
-
-        // *** IMPORTANT: REPLACE THIS WITH YOUR GOOGLE APPS SCRIPT URL ***
         const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwuscHSvhqjG6yEtuglVQGyTH3LIR4C0G8X9KKfZiMycQvWTRG-180o-jgsdCQ_adqr/exec';
 
         form.addEventListener('submit', (e) => {
             e.preventDefault();
-            
-            // Visual Feedback
             const originalText = btn.innerText;
             btn.innerText = 'TRANSMITTING...';
             btn.disabled = true;
@@ -375,22 +536,16 @@
             successMsg.classList.add('hidden');
             errorMsg.classList.add('hidden');
 
-            // Send Data
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: new FormData(form),
-                // mode: 'no-cors' // Use this if you get CORS errors, but you won't see response json
             })
             .then(response => {
-                // If using no-cors, this will always fire even on error
-                // If using standard cors, check response.ok
-                // For simple Google Sheet forms, we often just assume success if fetch works
                 form.reset();
                 btn.innerText = originalText;
                 btn.disabled = false;
                 btn.classList.remove('opacity-75');
                 successMsg.classList.remove('hidden');
-                
                 setTimeout(() => {
                     successMsg.classList.add('hidden');
                 }, 5000);
