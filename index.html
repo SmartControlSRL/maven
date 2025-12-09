@@ -129,7 +129,8 @@
                 </div>
             </div>
             
-            <h1 class="text-5xl md:text-7xl lg:text-8xl font-bold text-white tracking-tighter leading-[1.1] mb-8 drop-shadow-2xl">
+            <!-- ADDED: w-fit to tighten hitbox around text -->
+            <h1 class="w-fit text-5xl md:text-7xl lg:text-8xl font-bold text-white tracking-tighter leading-[1.1] mb-8 drop-shadow-2xl">
                 FUTURE <span class="text-gradient">PROOF</span><br>
                 YOUR BUSINESS.
             </h1>
@@ -185,9 +186,9 @@
                     We skip the forms and bureaucracy. If you have a vision that needs engineering or capital, let's talk directly.
                 </p>
 
-                <a href="mailto:office@mavengroup.ro" class="group relative inline-flex items-center gap-3 bg-white text-slate-950 font-bold py-4 px-8 rounded-full tracking-wide transition-all hover:bg-indigo-50 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]">
+                <a href="mailto:office@maven.ro" class="group relative inline-flex items-center gap-3 bg-white text-slate-950 font-bold py-4 px-8 rounded-full tracking-wide transition-all hover:bg-indigo-50 hover:scale-105 hover:shadow-[0_0_40px_rgba(255,255,255,0.3)]">
                     <i data-lucide="mail" class="w-5 h-5 text-indigo-600 transition-transform group-hover:rotate-12"></i>
-                    <span>office@mavengroup.ro</span>
+                    <span>office@maven.ro</span>
                 </a>
             </div>
         </div>
@@ -213,10 +214,35 @@
         let lastAutoPop = Date.now();
         let nextPopDelay = 15000; // Start with 15s
 
+        // DRAG STATE
+        let dragTarget = null;
+        let dragOffset = { x: 0, y: 0 };
+        let dragStartPos = { x: 0, y: 0 };
+        let previousMousePos = { x: 0, y: 0 };
+        let mouseVelocity = { x: 0, y: 0 };
+
         document.addEventListener('mousemove', (e) => {
+            // Update velocity before updating position
+            mouseVelocity = {
+                x: e.clientX - mouseX,
+                y: e.clientY - mouseY
+            };
+            
             mouseX = e.clientX;
             mouseY = e.clientY;
             lastInteraction = Date.now();
+
+            // Handle Dragging
+            if (dragTarget) {
+                // Move the square directly to cursor (offset adjusted)
+                dragTarget.x = mouseX + dragOffset.x;
+                dragTarget.y = mouseY + dragOffset.y;
+                
+                // Impart mouse velocity to the square while dragging so it hits things hard
+                // We use a smoothed velocity for better feel
+                dragTarget.vx = mouseVelocity.x * 0.8; 
+                dragTarget.vy = mouseVelocity.y * 0.8;
+            }
         });
 
         // 2. INTERACTIVE PHYSICS SYSTEM
@@ -224,6 +250,46 @@
         const ctx = canvas.getContext('2d');
         let squares = [];
         let animationFrameId;
+        
+        // TRAIL SYSTEM
+        let trails = [];
+        class TrailRect {
+            constructor(x, y, size, angle, colorVal) {
+                this.x = x;
+                this.y = y;
+                this.size = size;
+                this.angle = angle;
+                this.colorVal = colorVal;
+                // MODIFIED: Longer duration, discrete neon start
+                this.alpha = 0.4; // Discreet start
+                this.decay = 0.008; // Slower fade (approx 1s duration)
+            }
+
+            update() {
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.rotate(this.angle);
+                
+                // NEON EFFECT: Glow
+                ctx.shadowBlur = 8; 
+                ctx.shadowColor = `rgb(${this.colorVal})`;
+
+                // Neon Stroke
+                ctx.strokeStyle = `rgba(${this.colorVal}, ${this.alpha})`;
+                ctx.lineWidth = 1;
+
+                // Very faint fill (almost invisible)
+                ctx.fillStyle = `rgba(${this.colorVal}, ${this.alpha * 0.05})`; 
+
+                ctx.fillRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.strokeRect(-this.size/2, -this.size/2, this.size, this.size);
+                ctx.restore();
+            }
+        }
 
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -276,6 +342,9 @@
             }
 
             update() {
+                // Skip physics update if being dragged (it's controlled by mouse)
+                if (this === dragTarget) return;
+
                 this.x += this.vx;
                 this.y += this.vy;
                 this.angle += this.rotationSpeed;
@@ -310,13 +379,18 @@
                 ctx.translate(this.x, this.y);
                 ctx.rotate(this.angle);
                 
-                // Dynamic styling based on hover
-                if (this.isHovered) {
+                // Dynamic styling based on hover OR drag
+                if (this.isHovered || this === dragTarget) {
                     ctx.fillStyle = `rgba(${this.colorVal}, 0.4)`; // Brighter when hovered
                     ctx.shadowBlur = 20;
                     ctx.shadowColor = `rgb(${this.colorVal})`;
                     ctx.strokeStyle = `rgba(${this.colorVal}, 1)`;
                     ctx.lineWidth = 2; // Hover effect keeps thicker line
+                    
+                    if (this === dragTarget) {
+                         ctx.shadowBlur = 40; // Extra glow when dragging
+                         ctx.scale(1.05, 1.05); // Slight enlarge
+                    }
                 } else {
                     ctx.fillStyle = `rgba(${this.colorVal}, ${this.alpha})`;
                     ctx.shadowBlur = 0;
@@ -391,7 +465,7 @@
             }
         }
 
-        // ADDED: Physics Collision Resolution
+        // ADDED: Physics Collision Resolution for Squares (Square-Square)
         function resolveCollisions() {
             for (let i = 0; i < squares.length; i++) {
                 for (let j = i + 1; j < squares.length; j++) {
@@ -407,6 +481,10 @@
                     const minDist = (s1.size * 0.55) + (s2.size * 0.55);
 
                     if (dist < minDist && dist > 0) {
+                        
+                        const isS1Dragged = (s1 === dragTarget);
+                        const isS2Dragged = (s2 === dragTarget);
+                        
                         // 1. Calculate Mass (Area)
                         const m1 = s1.size * s1.size;
                         const m2 = s2.size * s2.size;
@@ -416,15 +494,27 @@
                         const overlap = minDist - dist;
                         const nx = dx / dist; // Normal X
                         const ny = dy / dist; // Normal Y
-
-                        // Move apart proportional to inverse mass (lighter moves more)
-                        const move1 = overlap * (m2 / totalMass);
-                        const move2 = overlap * (m1 / totalMass);
-
-                        s1.x -= nx * move1;
-                        s1.y -= ny * move1;
-                        s2.x += nx * move2;
-                        s2.y += ny * move2;
+                        
+                        // SPECIAL DRAG HANDLING:
+                        // If one is being dragged, it has "Infinite Mass" and does not move.
+                        // The other one moves the full overlap distance.
+                        if (isS1Dragged) {
+                            s2.x += nx * overlap;
+                            s2.y += ny * overlap;
+                            // S1 does not move
+                        } else if (isS2Dragged) {
+                            s1.x -= nx * overlap;
+                            s1.y -= ny * overlap;
+                            // S2 does not move
+                        } else {
+                            // Standard Physics
+                            const move1 = overlap * (m2 / totalMass);
+                            const move2 = overlap * (m1 / totalMass);
+                            s1.x -= nx * move1;
+                            s1.y -= ny * move1;
+                            s2.x += nx * move2;
+                            s2.y += ny * move2;
+                        }
 
                         // 3. Resolve Velocity (1D Elastic Collision along normal)
                         // Project velocities onto the normal vector
@@ -432,54 +522,180 @@
                         const v2n = s2.vx * nx + s2.vy * ny;
 
                         // Impact formula
-                        const v1nAfter = (v1n * (m1 - m2) + 2 * m2 * v2n) / totalMass;
-                        const v2nAfter = (v2n * (m2 - m1) + 2 * m1 * v1n) / totalMass;
+                        // Note: Even if dragged, s1.vx IS updated by mouse velocity in update()
+                        // So the collision will feel powerful.
+                        let v1nAfter, v2nAfter;
+                        
+                        if (isS1Dragged) {
+                             // S1 is a wall. v1n doesn't change. v2n reflects.
+                             // v2' = v2 - 2(v2 - v1)
+                             // Actually, wall with velocity: 2*vWall - vObject
+                             v1nAfter = v1n; // dragged object keeps momentum
+                             v2nAfter = 2 * v1n - v2n;
+                        } else if (isS2Dragged) {
+                             v2nAfter = v2n;
+                             v1nAfter = 2 * v2n - v1n;
+                        } else {
+                            // Standard
+                            v1nAfter = (v1n * (m1 - m2) + 2 * m2 * v2n) / totalMass;
+                            v2nAfter = (v2n * (m2 - m1) + 2 * m1 * v1n) / totalMass;
+                        }
 
                         // Apply changes back to velocity vectors
-                        s1.vx += (v1nAfter - v1n) * nx;
-                        s1.vy += (v1nAfter - v1n) * ny;
-                        s2.vx += (v2nAfter - v2n) * nx;
-                        s2.vy += (v2nAfter - v2n) * ny;
-
-                        // Add a little friction/energy loss
-                        s1.vx *= 0.98; s1.vy *= 0.98;
-                        s2.vx *= 0.98; s2.vy *= 0.98;
+                        // (Only apply if NOT dragged)
+                        if (!isS1Dragged) {
+                            s1.vx += (v1nAfter - v1n) * nx;
+                            s1.vy += (v1nAfter - v1n) * ny;
+                            s1.vx *= 0.98; s1.vy *= 0.98; // Friction
+                        }
+                        
+                        if (!isS2Dragged) {
+                            s2.vx += (v2nAfter - v2n) * nx;
+                            s2.vy += (v2nAfter - v2n) * ny;
+                            s2.vx *= 0.98; s2.vy *= 0.98; // Friction
+                        }
                     }
                 }
             }
         }
 
+        // 4. ELEMENT COLLISION SYSTEM (Square-DOM)
+        const obstacleSelectors = [
+            'nav', 
+            'h1', 
+            '.tech-card', 
+            'a[href^="mailto"]', // The contact button
+            '.inline-flex' // The "System Online" badge
+        ];
+
+        function resolveElementCollisions() {
+            // Get all obstacle rects for this frame
+            // Performance note: getBoundingClientRect triggers reflow, 
+            // but for < 20 elements on modern devices, it's acceptable for this effect.
+            const obstacles = [];
+            obstacleSelectors.forEach(selector => {
+                document.querySelectorAll(selector).forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    // Optimization: Only consider elements currently on screen
+                    if (rect.bottom > 0 && rect.top < canvas.height) {
+                         obstacles.push(rect);
+                    }
+                });
+            });
+
+            squares.forEach(sq => {
+                // If dragging, we allow clipping through DOM elements (God mode)
+                // Otherwise it feels like the mouse is broken.
+                if (sq === dragTarget) return;
+
+                obstacles.forEach(rect => {
+                     // Circle-Rect Collision
+                     // Treat square as circle for smoother bouncing
+                     const radius = sq.size / 2;
+                     
+                     // Find closest point on rect to circle center
+                     const closestX = Math.max(rect.left, Math.min(sq.x, rect.right));
+                     const closestY = Math.max(rect.top, Math.min(sq.y, rect.bottom));
+                     
+                     const dx = sq.x - closestX;
+                     const dy = sq.y - closestY;
+                     const distSq = dx * dx + dy * dy;
+                     
+                     // Check collision (distance squared < radius squared)
+                     if (distSq < radius * radius) {
+                         // Edge case: center is inside rect (distSq=0)
+                         if (distSq === 0) {
+                             // Deep overlap/center match. Push up and right arbitrarily to escape.
+                             sq.x += radius;
+                             sq.y -= radius;
+                             return; 
+                         }
+
+                         const dist = Math.sqrt(distSq);
+                         
+                         // Calculate normal
+                         const nx = dx / dist;
+                         const ny = dy / dist;
+                         
+                         // Penetration depth
+                         const overlap = radius - dist;
+                         
+                         // 1. Move square out of collision
+                         sq.x += nx * overlap;
+                         sq.y += ny * overlap;
+                         
+                         // 2. Reflect velocity
+                         const dot = sq.vx * nx + sq.vy * ny;
+                         
+                         sq.vx -= 2 * dot * nx;
+                         sq.vy -= 2 * dot * ny;
+                         
+                         // 3. Energy loss (dampening)
+                         sq.vx *= 0.7; // Lose 30% energy on wall hit
+                         sq.vy *= 0.7;
+                         
+                         // 4. Force Push (to prevent sticking)
+                         // If it's barely moving, give it a tiny nudge away
+                         if (Math.abs(sq.vx) < 0.1 && Math.abs(sq.vy) < 0.1) {
+                             sq.vx += nx * 0.5;
+                             sq.vy += ny * 0.5;
+                         }
+                     }
+                });
+            });
+        }
+
         // --- INTERACTION ---
         canvas.addEventListener('mousedown', (e) => {
-            lastInteraction = Date.now(); // Reset idle timer on click
             const rect = canvas.getBoundingClientRect();
             const clickX = e.clientX - rect.left;
             const clickY = e.clientY - rect.top;
+            lastInteraction = Date.now();
 
-            // Iterate backwards so we can remove items easily
-            // and so we hit top items first
+            // Check hit for DRAGGING
+            // Iterate backwards to hit top items first
             for (let i = squares.length - 1; i >= 0; i--) {
                 const sq = squares[i];
                 if (sq.isHit(clickX, clickY)) {
-                    // Split it
-                    const newChildren = sq.split();
+                    dragTarget = sq;
+                    dragStartPos = { x: sq.x, y: sq.y };
+                    // Calculate offset so it doesn't snap center to mouse
+                    dragOffset = { x: sq.x - clickX, y: sq.y - clickY };
                     
-                    // Remove parent
-                    squares.splice(i, 1);
-                    
-                    // Add children
-                    squares.push(...newChildren);
-
-                    // If it was a background square (not a child), 
-                    // maybe spawn a new distant background one to keep the "ecosystem" alive?
-                    // Optional: keeps the screen from emptying out
-                    if (!sq.isChild) {
-                         setTimeout(() => squares.push(new Square()), 1000);
-                    }
-                    
-                    // Break after hitting one to avoid multi-kill on overlap (optional)
-                    break;
+                    // Stop further processing (only one item)
+                    return; 
                 }
+            }
+        });
+
+        // Global mouseup to catch release anywhere
+        window.addEventListener('mouseup', () => {
+            if (dragTarget) {
+                // Check if this was a CLICK (split) or a DRAG (throw)
+                const distMoved = Math.hypot(dragTarget.x - dragStartPos.x, dragTarget.y - dragStartPos.y);
+
+                // Threshold for "Click": 5 pixels
+                if (distMoved < 5) {
+                    // Logic for SPLITTING (Existing)
+                    // We need to find the index of dragTarget
+                    const index = squares.indexOf(dragTarget);
+                    if (index > -1) {
+                         const newChildren = dragTarget.split();
+                         squares.splice(index, 1);
+                         squares.push(...newChildren);
+                         
+                         // Replenish
+                         if (!dragTarget.isChild) {
+                             setTimeout(() => squares.push(new Square()), 1000);
+                         }
+                    }
+                } else {
+                    // It was a DRAG/THROW
+                    // The velocity is already set in the mousemove event
+                    // just release it.
+                }
+
+                dragTarget = null;
             }
         });
 
@@ -498,8 +714,8 @@
                     // Find valid targets (visible parent squares)
                     const targets = [];
                     squares.forEach((sq, index) => {
-                        // Only explode parents that are safely on screen
-                        if (!sq.isChild && sq.x > 50 && sq.x < canvas.width - 50 && sq.y > 50 && sq.y < canvas.height - 50) {
+                        // Only explode parents that are safely on screen AND not being dragged
+                        if (sq !== dragTarget && !sq.isChild && sq.x > 50 && sq.x < canvas.width - 50 && sq.y > 50 && sq.y < canvas.height - 50) {
                             targets.push(index);
                         }
                     });
@@ -527,6 +743,23 @@
 
             // Apply collision physics before movement
             resolveCollisions();
+            resolveElementCollisions(); // DOM COLLISION
+
+            // TRAIL LOGIC
+            if (dragTarget) {
+                trails.push(new TrailRect(dragTarget.x, dragTarget.y, dragTarget.size, dragTarget.angle, dragTarget.colorVal));
+            }
+
+            // Draw Trails (behind squares)
+            for (let i = trails.length - 1; i >= 0; i--) {
+                const t = trails[i];
+                t.update();
+                if (t.alpha <= 0) {
+                    trails.splice(i, 1);
+                } else {
+                    t.draw();
+                }
+            }
 
             let cursorPointer = false;
 
@@ -536,8 +769,12 @@
                 if (sq.isHovered) cursorPointer = true;
             });
 
-            // Update cursor based on hover state
-            canvas.style.cursor = cursorPointer ? 'pointer' : 'default';
+            // Update cursor based on hover state OR drag state
+            if (dragTarget) {
+                canvas.style.cursor = 'grabbing';
+            } else {
+                canvas.style.cursor = cursorPointer ? 'grab' : 'default';
+            }
 
             animationFrameId = requestAnimationFrame(animate);
         }
